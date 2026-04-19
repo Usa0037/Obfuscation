@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>文字列 難読化 / 復号ツール</title>
+<style>
+    body {
+        font-family: sans-serif;
+        margin: 20px;
+        background: #f5f5f5;
+    }
+    textarea, input {
+        width: 100%;
+        padding: 10px;
+        margin-top: 8px;
+        margin-bottom: 16px;
+        font-size: 14px;
+    }
+    button {
+        padding: 10px 16px;
+        margin-right: 10px;
+        cursor: pointer;
+    }
+    .output {
+        background: #fff;
+        border: 1px solid #ccc;
+        padding: 10px;
+        white-space: pre-wrap;
+        word-break: break-all;
+    }
+</style>
+</head>
+<body>
+
+<h2>文字列 難読化 / 復号ツール</h2>
+
+<label>キー</label>
+<input type="text" id="key" placeholder="キーを入力">
+
+<label>入力テキスト</label>
+<textarea id="input" rows="6" placeholder="ここに文字列を入力"></textarea>
+
+<button onclick="encode()">難読化</button>
+<button onclick="decode()">復号</button>
+<button onclick="copyOutput()">コピー</button>
+
+<h3>結果</h3>
+<div id="output" class="output"></div>
+
+<script>
+// UTF-8文字列 → Uint8Array
+function strToBytes(str) {
+    return new TextEncoder().encode(str);
+}
+
+// Uint8Array → UTF-8文字列
+function bytesToStr(bytes) {
+    return new TextDecoder().decode(bytes);
+}
+
+// XOR処理
+function xor(data, key) {
+    const result = new Uint8Array(data.length);
+    for (let i = 0; i < data.length; i++) {
+        result[i] = data[i] ^ key[i % key.length];
+    }
+    return result;
+}
+
+// Base64エンコード
+function toBase64(bytes) {
+    return btoa(String.fromCharCode(...bytes));
+}
+
+// Base64デコード
+function fromBase64(base64) {
+    const bin = atob(base64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) {
+        bytes[i] = bin.charCodeAt(i);
+    }
+    return bytes;
+}
+
+// 難読化
+function encode() {
+    const keyStr = document.getElementById("key").value;
+    const inputStr = document.getElementById("input").value;
+
+    if (!keyStr) {
+        alert("キーを入力してください");
+        return;
+    }
+
+    const data = strToBytes(inputStr);
+    const key = strToBytes(keyStr);
+
+    const encrypted = xor(data, key);
+    const base64 = toBase64(encrypted);
+
+    document.getElementById("output").textContent = base64;
+}
+
+// 復号
+function decode() {
+    const keyStr = document.getElementById("key").value;
+    const inputStr = document.getElementById("input").value;
+
+    if (!keyStr) {
+        alert("キーを入力してください");
+        return;
+    }
+
+    try {
+        const data = fromBase64(inputStr);
+        const key = strToBytes(keyStr);
+
+        const decrypted = xor(data, key);
+        const text = bytesToStr(decrypted);
+
+        document.getElementById("output").textContent = text;
+    } catch (e) {
+        alert("復号に失敗しました（入力が正しくない可能性があります）");
+    }
+}
+
+// コピー
+function copyOutput() {
+    const text = document.getElementById("output").textContent;
+    if (!text) return;
+
+    navigator.clipboard.writeText(text)
+        .then(() => alert("コピーしました"))
+        .catch(() => alert("コピーに失敗しました"));
+}
+</script>
+
+</body>
+</html>
